@@ -98,15 +98,34 @@ async fn main() -> Result<(), Box<dyn Error>> {
         };
 
         let _ = behaviour.pubsub.subscribe(&topic.clone());
+
         Swarm::new(transport, behaviour, local_peer_id)
     };
 
     // Reach out to another node if specified
     if let Some(to_dial) = std::env::args().nth(1) {
         let addr: Multiaddr = to_dial.parse()?;
-        swarm.dial(addr)?;
-        println!("Dialed {:?}", to_dial)
+        let peer: PeerId = PeerId::try_from_multiaddr(&addr).expect("!!!!!");
+        swarm.dial(addr.clone())?;
+        println!("Dialed {:?}", to_dial);
+
+        // add to pubsub
+        swarm.behaviour_mut().pubsub.add_explicit_peer(&peer);
+
+        // add to dht
+        swarm
+            .behaviour_mut()
+            .kademlia
+            .as_mut()
+            .expect("!!")
+            .add_address(&peer, addr);
     }
+
+    // if let Some(to_dial) = std::env::args().nth(1) {
+    //     let peer: PeerId = to_dial.parse()?;
+    //     swarm.dial(peer)?;
+    //     println!("Dialed peeMultiaddrMultiaddrMultiaddrr {:?}", to_dial)
+    // }
 
     // Read full lines from stdin
     let mut stdin = io::BufReader::new(io::stdin()).lines().fuse();
@@ -145,6 +164,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                             .add_explicit_peer(&peer);
 
                         // TODO: add to dht
+                        // TODO: check for existance
                         swarm
                             .behaviour_mut()
                             .kademlia
