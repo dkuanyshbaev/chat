@@ -124,6 +124,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .add_address(&peer, addr);
     }
 
+    // Order Kademlia to search for a peer.???
+    // let to_search: PeerId = if let Some(peer_id) = env::args().nth(1) {
+    //     peer_id.parse()?
+    // } else {
+    //     identity::Keypair::generate_ed25519().public().into()
+    // };
+    //
+    // println!("Searching for the closest peers to {:?}", to_search);
+    // swarm.behaviour_mut().get_closest_peers(to_search);
+
     // Read full lines from stdin
     let mut stdin = io::BufReader::new(io::stdin()).lines().fuse();
 
@@ -199,26 +209,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     //         .expect("!!")
                     //         .bootstrap();
                     // println!("a: {:?}", a);
-                    // let kad = swarm.behaviour_mut().kademlia.as_mut().expect("@@@");
-                    // let mut keys = vec![];
-                    // for u in kad.kbuckets() {
-                    //     for i in u.iter() {
-                    //         keys.push(i.node.key.clone());
-                    //         // println!(
-                    //         //     "))))))) {:?}, {:?}, {:?}",
-                    //         //     i.status,
-                    //         //     i.node.key,
-                    //         //     i.node.value
-                    //         // );
-                    //     }
-                    // }
-
-                    // for key in keys {
-                    //     let b = kad.get_closest_local_peers(&key);
-                    //     for k in b {
-                    //         println!("k: {:?}", k);
-                    //     }
-                    // }
                 },
                 SwarmEvent::Behaviour(OutEvent::Kademlia(
                         any_event
