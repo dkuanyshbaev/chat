@@ -9,6 +9,7 @@ use libp2p::{
         MessageAuthenticity, MessageId,
     },
     identity,
+    kad::{record::store::MemoryStore, Kademlia, KademliaEvent},
     mdns::{Mdns, MdnsConfig, MdnsEvent},
     swarm::{behaviour::toggle::Toggle, SwarmEvent},
     Multiaddr, NetworkBehaviour, PeerId, Swarm,
@@ -38,19 +39,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
     struct MyBehaviour {
         pubsub: Gossipsub,
         mdns: Toggle<Mdns>,
-        // kademlia: Toggle<Kademlia<MemoryStore>>
+        kademlia: Toggle<Kademlia<MemoryStore>>,
     }
 
     #[derive(Debug)]
     enum OutEvent {
         Pubsub(GossipsubEvent),
         Mdns(MdnsEvent),
-    }
-
-    impl From<MdnsEvent> for OutEvent {
-        fn from(v: MdnsEvent) -> Self {
-            Self::Mdns(v)
-        }
+        Kademlia(KademliaEvent),
     }
 
     impl From<GossipsubEvent> for OutEvent {
@@ -59,10 +55,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
+    impl From<MdnsEvent> for OutEvent {
+        fn from(v: MdnsEvent) -> Self {
+            Self::Mdns(v)
+        }
+    }
+
+    impl From<KademliaEvent> for OutEvent {
+        fn from(v: KademliaEvent) -> Self {
+            Self::Kademlia(v)
+        }
+    }
+
     // Create a Swarm to manage peers and events
     let mut swarm = {
-        let mdns = task::block_on(Mdns::new(MdnsConfig::default()))?;
-        let mdns = Toggle::from(Some(mdns));
         let gossipsub_config = GossipsubConfigBuilder::default()
             .heartbeat_interval(Duration::from_millis(1000))
             .message_id_fn(|message: &GossipsubMessage| {
@@ -78,7 +84,18 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let pubsub = Gossipsub::new(MessageAuthenticity::Signed(local_key), gossipsub_config)
             .expect("Correct configuration");
 
-        let mut behaviour = MyBehaviour { pubsub, mdns };
+        let mdns = task::block_on(Mdns::new(MdnsConfig::default()))?;
+        let mdns = Toggle::from(Some(mdns));
+
+        let store = MemoryStore::new(local_peer_id);
+        let mut kademlia = Kademlia::new(local_peer_id, store);
+        let mut kademlia = Toggle::from(Some(kademlia));
+
+        let mut behaviour = MyBehaviour {
+            pubsub,
+            mdns,
+            kademlia,
+        };
 
         let _ = behaviour.pubsub.subscribe(&topic.clone());
         Swarm::new(transport, behaviour, local_peer_id)
@@ -133,15 +150,22 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 ))) => {
                     for (peer, _) in list {
                         if let Some(mdns) = swarm.behaviour_mut().mdns.as_ref() {
-                        if !mdns.has_node(&peer) {
-                            swarm
-                                .behaviour_mut()
-                                .pubsub
-                                .remove_explicit_peer(&peer);
-                        }
-
+                            if !mdns.has_node(&peer) {
+                                swarm
+                                    .behaviour_mut()
+                                    .pubsub
+                                    .remove_explicit_peer(&peer);
+                            }
                         }
                     }
+                },
+                SwarmEvent::Behaviour(OutEvent::Kademlia(
+                        any_event
+                )) => {
+                    println!(
+                        "Received kad event: {:?}",
+                        any_event
+                    );
                 },
                 _ => {}
             }
