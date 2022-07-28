@@ -138,11 +138,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 SwarmEvent::Behaviour(OutEvent::Mdns(
                     MdnsEvent::Discovered(list)
                 )) => {
-                    for (peer, _) in list {
+                    for (peer, multiaddr) in list {
                         swarm
                             .behaviour_mut()
                             .pubsub
                             .add_explicit_peer(&peer);
+
+                        // TODO: add to dht
+                        swarm
+                            .behaviour_mut()
+                            .kademlia
+                            .as_mut()
+                            .expect("!!")
+                            .add_address(&peer, multiaddr);
                     }
                 }
                 SwarmEvent::Behaviour(OutEvent::Mdns(MdnsEvent::Expired(
@@ -157,6 +165,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                                     .remove_explicit_peer(&peer);
                             }
                         }
+                        // TODO: remove from dht
                     }
                 },
                 SwarmEvent::Behaviour(OutEvent::Kademlia(
