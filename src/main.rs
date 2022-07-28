@@ -109,6 +109,9 @@ async fn main() -> Result<(), Box<dyn Error>> {
         swarm.dial(addr.clone())?;
         println!("Dialed {:?}", to_dial);
 
+        // ???
+        // swarm.dial(peer)?;
+
         // add to pubsub
         swarm.behaviour_mut().pubsub.add_explicit_peer(&peer);
 
@@ -120,12 +123,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             .expect("!!")
             .add_address(&peer, addr);
     }
-
-    // if let Some(to_dial) = std::env::args().nth(1) {
-    //     let peer: PeerId = to_dial.parse()?;
-    //     swarm.dial(peer)?;
-    //     println!("Dialed peeMultiaddrMultiaddrMultiaddrr {:?}", to_dial)
-    // }
 
     // Read full lines from stdin
     let mut stdin = io::BufReader::new(io::stdin()).lines().fuse();
