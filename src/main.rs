@@ -88,8 +88,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         let mdns = Toggle::from(Some(mdns));
 
         let store = MemoryStore::new(local_peer_id);
-        let mut kademlia = Kademlia::new(local_peer_id, store);
-        let mut kademlia = Toggle::from(Some(kademlia));
+        let kademlia = Kademlia::new(local_peer_id, store);
+        let kademlia = Toggle::from(Some(kademlia));
 
         let mut behaviour = MyBehaviour {
             pubsub,
@@ -157,7 +157,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 SwarmEvent::Behaviour(OutEvent::Mdns(
                     MdnsEvent::Discovered(list)
                 )) => {
-                    for (peer, multiaddr) in list {
+                    for (peer, _multiaddr) in list {
                         swarm
                             .behaviour_mut()
                             .pubsub
@@ -165,12 +165,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
                         // TODO: add to dht
                         // TODO: check for existance
-                        swarm
-                            .behaviour_mut()
-                            .kademlia
-                            .as_mut()
-                            .expect("!!")
-                            .add_address(&peer, multiaddr);
+                        // swarm
+                        //     .behaviour_mut()
+                        //     .kademlia
+                        //     .as_mut()
+                        //     .expect("!!")
+                        //     .add_address(&peer, multiaddr);
                     }
                 }
                 SwarmEvent::Behaviour(OutEvent::Mdns(MdnsEvent::Expired(
@@ -187,6 +187,41 @@ async fn main() -> Result<(), Box<dyn Error>> {
                         }
                         // TODO: remove from dht
                     }
+                },
+                SwarmEvent::Behaviour(OutEvent::Kademlia(
+                        KademliaEvent::RoutingUpdated { peer, .. }
+                )) => {
+                    println!(
+                        "Received kad peer: {:?}",
+                        peer
+                    );
+                    // let a = swarm
+                    //         .behaviour_mut()
+                    //         .kademlia
+                    //         .as_mut()
+                    //         .expect("!!")
+                    //         .bootstrap();
+                    // println!("a: {:?}", a);
+                    // let kad = swarm.behaviour_mut().kademlia.as_mut().expect("@@@");
+                    // let mut keys = vec![];
+                    // for u in kad.kbuckets() {
+                    //     for i in u.iter() {
+                    //         keys.push(i.node.key.clone());
+                    //         // println!(
+                    //         //     "))))))) {:?}, {:?}, {:?}",
+                    //         //     i.status,
+                    //         //     i.node.key,
+                    //         //     i.node.value
+                    //         // );
+                    //     }
+                    // }
+
+                    // for key in keys {
+                    //     let b = kad.get_closest_local_peers(&key);
+                    //     for k in b {
+                    //         println!("k: {:?}", k);
+                    //     }
+                    // }
                 },
                 SwarmEvent::Behaviour(OutEvent::Kademlia(
                         any_event
